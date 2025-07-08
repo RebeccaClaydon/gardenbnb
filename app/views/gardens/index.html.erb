@@ -8,19 +8,13 @@
             <p>
               <strong><%= @gardens.count %></strong> jardin(s) trouvé(s)
               <% if params[:query].present? %>
-                pour « <%= params[:query] %> »
+                pour « <%= params[:query] %> »
               <% end %>
             </p>
           </div>
         <% else %>
           <h1>Tous les jardins</h1>
         <% end %>
-
-        <%# <div style="width: 300px;">
-          <div data-controller="address-autocomplete"
-               data-address-autocomplete-api-key-value="<%= ENV['MAPBOX_API_KEY'] %>
-          <%# </div>
-        </div> %>
       </div>
 
       <!-- TRI PAR PRIX -->
@@ -44,11 +38,11 @@
 
   <!-- VERSION MOBILE DE LA CARTE -->
   <div class="d-lg-none mb-4">
-    <div style="width: 100%; height: 300px; border-radius: 8px; overflow: hidden;"
+    <div style="width: 100%; height: 300px; border-radius: 8px; position: relative;"
          data-controller="map"
          data-map-markers-value="<%= @markers.to_json %>"
          data-map-api-key-value="<%= ENV['MAPBOX_API_KEY'] %>">
-      <div id="map-mobile" class="mapbox" style="width: 100%; height: 100%;"></div>
+      <div id="map-mobile" class="mapbox" style="width: 100%; height: 100%; border-radius: 8px;"></div>
     </div>
   </div>
 
@@ -105,16 +99,11 @@
     <!-- CARTE À DROITE (DESKTOP UNIQUEMENT) -->
     <div class="col-lg-5 order-1 order-lg-2 mb-4 mb-lg-0">
       <div class="sticky-lg-top" style="top: 20px;">
-        <div class="d-none d-lg-block position-relative" style="width: 100%; height: 80vh; border-radius: 8px; overflow: hidden;"
+        <div class="d-none d-lg-block" style="width: 100%; height: 80vh; border-radius: 8px;"
             data-controller="map"
             data-map-markers-value="<%= @markers.to_json %>"
             data-map-api-key-value="<%= ENV['MAPBOX_API_KEY'] %>">
-
-          <!-- Conteneur du champ de recherche -->
-          <div id="map-geocoder" class="position-absolute top-0 start-50 translate-middle-x mt-3" style="z-index: 10; width: 80%;"></div>
-
-          <!-- Carte Mapbox -->
-          <div id="map" class="mapbox" style="width: 100%; height: 100%;"></div>
+          <div id="map" class="mapbox" style="width: 100%; height: 100%; border-radius: 8px;"></div>
         </div>
       </div>
     </div>

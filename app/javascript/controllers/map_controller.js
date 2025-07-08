@@ -11,7 +11,7 @@ export default class extends Controller {
     mapboxgl.accessToken = this.apiKeyValue
 
     this.map = new mapboxgl.Map({
-      container: this.element,
+      container: this.element.querySelector('#map') || this.element.querySelector('#map-mobile'),
       style: "mapbox://styles/mapbox/outdoors-v12"
     })
 
