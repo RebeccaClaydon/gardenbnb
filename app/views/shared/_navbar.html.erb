@@ -57,7 +57,7 @@
 
     <!-- Ligne 2 : Search bar -->
     <div class="w-100 d-flex justify-content-center mt-2">
-      <%= form_with url: search_gardens_path, method: :get, class: "search-form", role: "search" do %>
+      <%= form_with url: gardens_path, method: :get, local: true, class: "search-form", role: "search" do %>
         <div class="input-group search-bar-container">
           <%= text_field_tag :query, params[:query], placeholder: "Rechercher un jardin", class: "form-control search-input" %>
           <button type="submit" class="btn search-button">

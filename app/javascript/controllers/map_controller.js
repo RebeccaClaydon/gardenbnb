@@ -15,11 +15,12 @@ export default class extends Controller {
       style: "mapbox://styles/mapbox/outdoors-v12"
     })
 
-    this.mapMarkers = [] // pour conserver la liste des markers et leurs coords
+    this.mapMarkers = []
 
     this.#addMarkersToMap()
     this.#fitMapToMarkers()
     this.#setupCardHoverEvents()
+    this.#setupCustomEventListeners()
   }
 
   #addMarkersToMap() {
@@ -35,7 +36,6 @@ export default class extends Controller {
         .setPopup(popup)
         .addTo(this.map)
 
-      // On stocke le marker + DOM + coords
       this.mapMarkers.push({
         marker: marker,
         element: customMarker,
@@ -46,9 +46,25 @@ export default class extends Controller {
   }
 
   #fitMapToMarkers() {
-    const bounds = new mapboxgl.LngLatBounds()
-    this.markersValue.forEach(marker => bounds.extend([marker.lng, marker.lat]))
-    this.map.fitBounds(bounds, { padding: 70, maxZoom: 15, duration: 0 })
+    if (this.markersValue.length === 0) return
+
+    if (this.markersValue.length === 1) {
+      const marker = this.markersValue[0]
+      this.map.flyTo({
+        center: [marker.lng, marker.lat],
+        zoom: 14,
+        duration: 1000
+      })
+    } else {
+      const bounds = new mapboxgl.LngLatBounds()
+      this.markersValue.forEach(marker => bounds.extend([marker.lng, marker.lat]))
+
+      this.map.fitBounds(bounds, {
+        padding: 70,
+        maxZoom: 15,
+        duration: 1000
+      })
+    }
   }
 
   #centerMap(lat, lng) {
@@ -82,5 +98,34 @@ export default class extends Controller {
         element.classList.remove("marker-highlight")
       }
     })
+  }
+
+  #setupCustomEventListeners() {
+    this.mapCenterHandler = (event) => {
+      const { lat, lng, zoom = 12 } = event.detail
+      this.map.flyTo({
+        center: [lng, lat],
+        zoom: zoom,
+        duration: 1000
+      })
+    }
+
+    this.highlightMarkerHandler = (event) => {
+      const { lat, lng } = event.detail
+      this.#centerMap(lat, lng)
+      this.#highlightMarker(lat, lng)
+    }
+
+    document.addEventListener("map:center", this.mapCenterHandler)
+    window.addEventListener("highlight-marker", this.highlightMarkerHandler)
+  }
+
+  disconnect() {
+    if (this.mapCenterHandler) {
+      document.removeEventListener("map:center", this.mapCenterHandler)
+    }
+    if (this.highlightMarkerHandler) {
+      window.removeEventListener("highlight-marker", this.highlightMarkerHandler)
+    }
   }
 }

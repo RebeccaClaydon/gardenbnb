@@ -1,51 +1,46 @@
 class GardensController < ApplicationController
   before_action :authenticate_user!, except: [:index, :show]
   before_action :set_garden, only: [:show, :edit, :update, :destroy]
-  # Vérifications Pundit manuelles pour ce contrôleur seulement
   after_action :verify_authorized, except: [:index]
   after_action :verify_policy_scoped, only: [:index]
 
   def index
-  @gardens = Garden.all
+    @gardens = Garden.all
 
-  if params[:query].present? || params[:location].present?
-    search_string = [params[:query], params[:location]].compact.join(" ")
-    @gardens = @gardens.garden_search(search_string)
+    if params[:query].present? || params[:location].present?
+      search_string = [params[:query], params[:location]].compact.join(" ")
+      @gardens = @gardens.garden_search(search_string)
+    end
+
+    @gardens = policy_scope(@gardens)
+
+    if params[:start_date].present? && params[:end_date].present?
+      start_date = Date.parse(params[:start_date])
+      end_date = Date.parse(params[:end_date])
+
+      available_garden_ids = @gardens.select do |garden|
+        garden.bookings.none? do |booking|
+          booking_start = booking.start_date
+          booking_end = booking.end_date
+          (start_date <= booking_end) && (end_date >= booking_start)
+        end
+      end.map(&:id)
+
+      @gardens = @gardens.where(id: available_garden_ids)
+    end
+
+    @markers = @gardens.geocoded.map do |garden|
+      {
+        lat: garden.latitude,
+        lng: garden.longitude,
+        info_window_html: render_to_string(partial: "info_window", locals: {garden: garden}),
+        marker_html: render_to_string(partial: "marker", locals: {garden: garden})
+      }
+    end
   end
-
-  @gardens = policy_scope(@gardens)
-
-  # Filtrage par dates de disponibilité
-  if params[:start_date].present? && params[:end_date].present?
-    start_date = Date.parse(params[:start_date])
-    end_date = Date.parse(params[:end_date])
-
-    # Récupérer les IDs des jardins disponibles sans convertir en Array
-    available_garden_ids = @gardens.select do |garden|
-      garden.bookings.none? do |booking|
-        booking_start = booking.start_date
-        booking_end = booking.end_date
-        (start_date <= booking_end) && (end_date >= booking_start)
-      end
-    end.map(&:id)
-
-    @gardens = @gardens.where(id: available_garden_ids)
-  end
-
-  # Marqueurs Mapbox
-  @markers = @gardens.geocoded.map do |garden|
-    {
-      lat: garden.latitude,
-      lng: garden.longitude,
-      info_window_html: render_to_string(partial: "info_window", locals: {garden: garden}),
-      marker_html: render_to_string(partial: "marker", locals: {garden: garden})
-    }
-  end
-end
 
   def show
     authorize @garden
-    # @garden déjà défini par set_garden
     @marker = [{
       lat: @garden.latitude,
       lng: @garden.longitude,
@@ -72,7 +67,6 @@ end
 
   def edit
     authorize @garden
-    # @garden déjà défini par set_garden
   end
 
   def update

@@ -1,30 +1,41 @@
 import { Controller } from "@hotwired/stimulus"
 import MapboxGeocoder from "@mapbox/mapbox-gl-geocoder"
 
-// Connects to data-controller="address-autocomplete"
 export default class extends Controller {
   static values = { apiKey: String }
 
   connect() {
     this.geocoder = new MapboxGeocoder({
       accessToken: this.apiKeyValue,
-      types: "country,region,place,postcode,locality,neighborhood,address"
+      types: "country,region,place,postcode,locality,neighborhood,address",
+      minLength: 2,
+      limit: 5,
+      debounce: 300,
+      countries: 'fr',
+      placeholder: 'Rechercher une ville...'
     })
-    this.geocoder.addTo(this.element)
 
-    // Quand une recherche est faite
+    const geocoderContainer = document.getElementById('map-geocoder')
+    if (geocoderContainer) {
+      this.geocoder.addTo(geocoderContainer)
+    } else {
+      this.geocoder.addTo(this.element)
+    }
+
     this.geocoder.on("result", event => this.#centerMainMap(event))
   }
 
   #centerMainMap(event) {
     const [lng, lat] = event.result.center
-    // Dispatche un événement custom pour la carte principale
+
     document.dispatchEvent(new CustomEvent("map:center", {
-    detail: { lat: lat, lng: lng }
+      detail: { lat: lat, lng: lng, zoom: 12 }
     }))
   }
 
   disconnect() {
-    this.geocoder.onRemove()
+    if (this.geocoder) {
+      this.geocoder.onRemove()
+    }
   }
 }
