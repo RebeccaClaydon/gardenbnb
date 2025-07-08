@@ -1,32 +1,73 @@
-<div class="row">
-  <div class="col-12">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1>Tous les jardins</h1>
-        <% if params[:query].present? %>
-          <p><strong><%= @gardens.count %></strong> jardin(s) trouvé(s) pour « <%= params[:query] %> »</p>
+<div class="container mt-5">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <% if params[:query].present? || params[:location].present? || params[:start_date].present? || params[:end_date].present? %>
+          <div>
+            <h1>Résultats de la recherche</h1>
+            <p>
+              <strong><%= @gardens.count %></strong> jardin(s) trouvé(s)
+              <% if params[:query].present? %>
+                pour « <%= params[:query] %> »
+              <% end %>
+            </p>
+          </div>
+        <% else %>
+          <h1>Tous les jardins</h1>
         <% end %>
-      <div style="width: 300px;">
-        <div data-controller="address-autocomplete"
-            data-address-autocomplete-api-key-value="<%= ENV['MAPBOX_API_KEY'] %>">
-        </div>
+
+        <%# <div style="width: 300px;">
+          <div data-controller="address-autocomplete"
+               data-address-autocomplete-api-key-value="<%= ENV['MAPBOX_API_KEY'] %>
+          <%# </div>
+        </div> %>
+      </div>
+
+      <!-- TRI PAR PRIX -->
+      <div class="mb-4">
+        <%= form_with url: gardens_path, method: :get, local: true, class: "d-inline-block" do %>
+          <div class="input-group">
+            <label class="input-group-text" for="sort">Trier par</label>
+            <%= select_tag :sort,
+                  options_for_select([["Prix croissant", "price_asc"], ["Prix décroissant", "price_desc"]], selected: params[:sort]),
+                  class: "form-select",
+                  onchange: "this.form.submit();" %>
+          </div>
+          <%= hidden_field_tag :query, params[:query] %>
+          <%= hidden_field_tag :location, params[:location] %>
+          <%= hidden_field_tag :start_date, params[:start_date] %>
+          <%= hidden_field_tag :end_date, params[:end_date] %>
+        <% end %>
       </div>
     </div>
   </div>
-</div>
+
+  <!-- VERSION MOBILE DE LA CARTE -->
+  <div class="d-lg-none mb-4">
+    <div style="width: 100%; height: 300px; border-radius: 8px; overflow: hidden;"
+         data-controller="map"
+         data-map-markers-value="<%= @markers.to_json %>"
+         data-map-api-key-value="<%= ENV['MAPBOX_API_KEY'] %>">
+      <div id="map-mobile" class="mapbox" style="width: 100%; height: 100%;"></div>
+    </div>
+  </div>
 
   <div class="row">
     <!-- JARDINS À GAUCHE -->
-    <div class="col-lg-7">
-      <div class="row">
+    <div class="col-lg-7 order-2 order-lg-1">
+      <div class="row pe-lg-3">
         <% if @gardens.any? %>
           <% @gardens.each do |garden| %>
             <div class="col-lg-6 mb-4">
-              <div class="card h-100">
+              <div class="card garden-card h-100"
+                   data-action="mouseover->map#highlightMarker"
+                   data-lat="<%= garden.latitude %>"
+                   data-lng="<%= garden.longitude %>">
                 <% if garden.photos.attached? %>
                   <%= cl_image_tag garden.photos.first.key,
-                                  width: 400, height: 200, crop: :fill,
-                                  class: "card-img-top",
-                                  alt: garden.title %>
+                      width: 400, height: 200, crop: :fill,
+                      class: "card-img-top",
+                      alt: garden.title %>
                 <% else %>
                   <div class="bg-light d-flex align-items-center justify-content-center card-img-top" style="height: 200px;">
                     <div class="text-center text-muted">
@@ -36,14 +77,12 @@
                   </div>
                 <% end %>
                 <div class="card-body d-flex flex-column">
-                  <h5 class="card-title"><%= garden.title %></h5>
+                  <h5 class="card-title garden-card-title"><%= garden.title %></h5>
                   <p class="card-text text-muted"><%= garden.address %></p>
                   <p class="card-text"><%= truncate(garden.description, length: 100) %></p>
-                  <div class="mt-auto">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <span class="h5 text-success mb-0"><%= garden.price_per_day %>€/jour</span>
-                      <%= link_to "Voir détails", garden_path(garden), class: "btn btn-outline-primary" %>
-                    </div>
+                  <div class="mt-auto d-flex justify-content-between align-items-center">
+                    <span class="h5 text-success mb-0"><%= garden.price_per_day %>€/jour</span>
+                    <%= link_to "Voir détails", garden_path(garden), class: "btn btn-primary garden-card-btn" %>
                   </div>
                 </div>
               </div>
@@ -63,14 +102,22 @@
       </div>
     </div>
 
-    <!-- CARTE À DROITE -->
-    <div class="col-lg-5">
-      <div class="sticky-top" style="top: 20px;">
-        <div style="width: 100%; height: 80vh; border-radius: 8px; overflow: hidden;"
-          data-controller="map"
-          data-map-markers-value="<%= @markers.to_json %>"
-          data-map-api-key-value="<%= ENV['MAPBOX_API_KEY'] %>"></div>
+    <!-- CARTE À DROITE (DESKTOP UNIQUEMENT) -->
+    <div class="col-lg-5 order-1 order-lg-2 mb-4 mb-lg-0">
+      <div class="sticky-lg-top" style="top: 20px;">
+        <div class="d-none d-lg-block position-relative" style="width: 100%; height: 80vh; border-radius: 8px; overflow: hidden;"
+            data-controller="map"
+            data-map-markers-value="<%= @markers.to_json %>"
+            data-map-api-key-value="<%= ENV['MAPBOX_API_KEY'] %>">
+
+          <!-- Conteneur du champ de recherche -->
+          <div id="map-geocoder" class="position-absolute top-0 start-50 translate-middle-x mt-3" style="z-index: 10; width: 80%;"></div>
+
+          <!-- Carte Mapbox -->
+          <div id="map" class="mapbox" style="width: 100%; height: 100%;"></div>
+        </div>
       </div>
     </div>
+
   </div>
 </div>
